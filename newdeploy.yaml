@@ -1,0 +1,60 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: apache3-deployment
+  namespace: mynamespace
+spec:
+  selector:
+    matchLabels:
+      app: apache3
+  replicas: 2
+  template: 
+    metadata:
+      labels:
+        app: apache3
+    spec:
+      containers:
+      - name: apache3
+        image: gcr.io/google_containers/hpa-example
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: "4"
+            memory: "100000Mi"
+          requests:
+            cpu: "0.5"
+            memory: "200Mi"
+---
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: apache3-deployment-hpa
+  namespace: mynamespace
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: apache3-deployment
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      targetAverageUtilization: 50
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: testfrontend3
+  namespace: mynamespace
+spec:
+  selector:
+    app: apache3
+  ports:
+  - protocol: "TCP"
+    port: 80
+    targetPort: 80
+  type: LoadBalancer
